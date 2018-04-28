@@ -25,9 +25,11 @@ def register(email, password):
                     "password": password
                 },
                 "subtask_id": "EnterPassword"
-        }
-    ]
-}
+            }
+        ]
+    }
+
+    r = requests.post(url, )
 
 s = check_available("test@test.de")
 print(s)
