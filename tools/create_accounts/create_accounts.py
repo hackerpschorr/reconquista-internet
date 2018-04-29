@@ -1,47 +1,15 @@
 from selenium import webdriver
-import random
-import string
 import json
-import re
 import argparse
-from api import check_available
-
-dict_path = {
-    'names': 'lists/names.lst',
-    'surnames': 'lists/surnames.lst',
-    'provider': 'lists/email_provider.lst'
-}
-
-
-def random_line_from_file(path):
-    lines = open(path).read().splitlines()
-    return random.choice(lines)
-
-
-def random_name():
-    name = random_line_from_file(dict_path['names'])
-    surname = random_line_from_file(dict_path['surnames'])
-    return name, surname
-
-
-def random_mail(name, surname):
-    email = name.lower() + random.choice('_-.') + surname.lower() + random.choice('_-.') + str(random.randint(1000, 9999))
-    email = re.sub(r'[^\x00-\x7f]', r'', email)
-    email += '@' + random_line_from_file(dict_path['provider'])
-    return email if check_available(email)['valid'] else random_mail(name, surname)
-
-
-def random_password(length):
-    return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + "!@#$%^&*()_-+=?<>,.~") for _ in range(length))
-
+import util
 
 def register(args):
     # generate data
-    name, surname = random_name()
+    name, surname = util.random_name()
     data = {
         'name': '{} {}'.format(name, surname),
-        'mail': random_mail(name, surname),
-        'pass': random_password(16)
+        'mail': util.random_mail(name, surname),
+        'pass': util.random_password(16)
     }
 
     # set custom header
