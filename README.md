@@ -1,5 +1,6 @@
 # reconquista-internet
 
-# create_accounts.py
+### create_accounts.py
 
-usage: python3 create_accounts.py OUTPUTFILE
+usage: 
+```python3 create_accounts.py OUTPUTFILE```
