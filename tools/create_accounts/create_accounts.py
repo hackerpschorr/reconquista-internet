@@ -1,17 +1,15 @@
 from selenium import webdriver
 import random
 import string
+import json
+import re
+import argparse
+from api import check_available
 
 dict_path = {
     'names': 'lists/names.lst',
     'surnames': 'lists/surnames.lst',
     'provider': 'lists/email_provider.lst'
-}
-
-dict_length = {
-    'names': 20561,
-    'surnames': 3421,
-    'provider': 3618
 }
 
 
@@ -28,15 +26,16 @@ def random_name():
 
 def random_mail(name, surname):
     email = name.lower() + random.choice('_-.') + surname.lower() + random.choice('_-.') + str(random.randint(1000, 9999))
+    email = re.sub(r'[^\x00-\x7f]', r'', email)
     email += '@' + random_line_from_file(dict_path['provider'])
-    return email
+    return email if check_available(email)['valid'] else random_mail(name, surname)
 
 
 def random_password(length):
-    return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(length))
+    return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + "!@#$%^&*()_-+=?<>,.~") for _ in range(length))
 
 
-def register(driver):
+def register(args):
     # generate data
     name, surname = random_name()
     data = {
@@ -45,42 +44,6 @@ def register(driver):
         'pass': random_password(16)
     }
 
-    # open twitter
-    driver.get('https://mobile.twitter.com/signup?type=email')
-
-    # first stage
-    input_name = driver.find_element_by_id('oauth_signup_client_fullname')
-    input_mail = driver.find_element_by_id('oauth_signup_client_phone_number')
-    btn_submit = driver.find_element_by_name('commit')
-
-    input_name.send_keys(data['name'])
-    input_mail.send_keys(data['mail'])
-
-    btn_submit.click()
-
-    # second stage
-    input_pass = driver.find_element_by_id('password')
-    btn_submit = driver.find_element_by_name('commit')
-
-    input_pass.send_keys(data['pass'])
-
-    btn_submit.click()
-
-    # third stage
-    btn_submit = driver.find_element_by_xpath('/html/body/div/div[2]/div[3]/form/input')
-
-    btn_submit.click()
-
-    # fourth stage
-    btn_submit = driver.find_element_by_name('commit')
-
-    btn_submit.click()
-
-    print(data)
-    # driver.close()
-
-
-if __name__ == '__main__':
     # set custom header
     profile = webdriver.FirefoxProfile()
     profile.set_preference('general.useragent.override',
@@ -89,7 +52,62 @@ if __name__ == '__main__':
     # init driver with custom header
     driver = webdriver.Firefox(profile)
 
-    for _ in range(20):
-        register(driver)
+    try:
+        # open twitter
+        driver.get('https://mobile.twitter.com/signup?type=email')
+
+        # first stage
+        input_name = driver.find_element_by_id('oauth_signup_client_fullname')
+        input_mail = driver.find_element_by_id('oauth_signup_client_phone_number')
+        btn_submit = driver.find_element_by_name('commit')
+
+        input_name.send_keys(data['name'])
+        input_mail.send_keys(data['mail'])
+
+        btn_submit.click()
+
+        # second stage
+        input_pass = driver.find_element_by_id('password')
+        btn_submit = driver.find_element_by_name('commit')
+
+        input_pass.send_keys(data['pass'])
+
+        btn_submit.click()
+
+        # third stage
+        btn_submit = driver.find_element_by_xpath('/html/body/div/div[2]/div[3]/form/input')
+
+        btn_submit.click()
+
+        # fourth stage
+        input_user = driver.find_element_by_id('custom_name')
+        btn_submit = driver.find_element_by_name('commit')
+
+        data['user'] = input_user.get_attribute('value')
+
+        btn_submit.click()
+
+        print(json.dumps(data))
+        with open(args.output_file, 'a') as f:
+            f.writelines(json.dumps(data) + '\n')
+
+    finally:
+        driver.close()
 
 
+def main(args):
+    while True:
+        try:
+            register(args)
+        except Exception as e:
+            print(e)
+            print("Change VPN")
+            input("press ENTER to continue.")
+            main(args)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('output_file', help="specify output file", type=str)
+    args = parser.parse_args()
+    main(args)
