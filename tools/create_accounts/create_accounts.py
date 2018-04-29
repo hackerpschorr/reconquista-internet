@@ -3,18 +3,13 @@ import random
 import string
 import json
 import re
+import argparse
 from api import check_available
 
 dict_path = {
     'names': 'lists/names.lst',
     'surnames': 'lists/surnames.lst',
     'provider': 'lists/email_provider.lst'
-}
-
-dict_length = {
-    'names': 20561,
-    'surnames': 3421,
-    'provider': 3618
 }
 
 
@@ -40,7 +35,7 @@ def random_password(length):
     return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + "!@#$%^&*()_-+=?<>,.~") for _ in range(length))
 
 
-def register():
+def register(args):
     # generate data
     name, surname = random_name()
     data = {
@@ -85,27 +80,34 @@ def register():
         btn_submit.click()
 
         # fourth stage
+        input_user = driver.find_element_by_id('custom_name')
         btn_submit = driver.find_element_by_name('commit')
+
+        data['user'] = input_user.get_attribute('value')
 
         btn_submit.click()
 
         print(json.dumps(data))
-        with open('accounts_2.jsonlst', 'a') as f:
+        with open(args.output_file, 'a') as f:
             f.writelines(json.dumps(data) + '\n')
 
     finally:
         driver.close()
 
 
-def main():
+def main(args):
     while True:
         try:
-            register()
-        except:
+            register(args)
+        except Exception as e:
+            print(e)
             print("Change VPN")
-            input("press ENTER")
-            main()
+            input("press ENTER to continue.")
+            main(args)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('output_file', help="specify output file", type=str)
+    args = parser.parse_args()
+    main(args)
